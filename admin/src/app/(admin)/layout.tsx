@@ -4,14 +4,28 @@ import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
-import React from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("travixaAdminToken");
+
+    if (!token) {
+      router.replace("/signin");
+      return;
+    }
+
+    setIsCheckingAuth(false);
+  }, [router]);
 
   // Dynamic class for main content margin based on sidebar state
   const mainContentMargin = isMobileOpen
@@ -19,6 +33,14 @@ export default function AdminLayout({
     : isExpanded || isHovered
     ? "lg:ml-[290px]"
     : "lg:ml-[90px]";
+
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+        Checking admin session...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen xl:flex">

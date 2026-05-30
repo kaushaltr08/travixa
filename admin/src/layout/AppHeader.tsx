@@ -83,7 +83,7 @@ const AppHeader: React.FC = () => {
             {/* Cross Icon */}
           </button>
 
-          <Link href="/" className="lg:hidden">
+          <Link href="/" className="inline-flex flex-col lg:hidden">
             <Image
               width={154}
               height={32}
@@ -98,6 +98,9 @@ const AppHeader: React.FC = () => {
               src="./images/logo/logo-dark.svg"
               alt="Logo"
             />
+            <span className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.13em] text-brand-500 dark:text-brand-400">
+              Plan smarter. Travel better.
+            </span>
           </Link>
 
           <button

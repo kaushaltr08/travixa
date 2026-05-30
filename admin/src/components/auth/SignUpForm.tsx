@@ -4,11 +4,64 @@ import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
-import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { FormEvent, useState } from "react";
+
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function SignUpForm() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+  });
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!isChecked) {
+      setMessage("Please accept the terms and privacy policy.");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setMessage("");
+
+      const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          email: formData.email,
+          password: formData.password,
+          role: "admin",
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Unable to create admin account.");
+      }
+
+      localStorage.setItem("travixaAdminToken", result.data.token);
+      localStorage.setItem("travixaAdminUser", JSON.stringify(result.data.user));
+      router.push("/");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to create admin account.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
       <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
@@ -83,7 +136,7 @@ export default function SignUpForm() {
                 </span>
               </div>
             </div>
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="space-y-5">
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   {/* <!-- First Name --> */}
@@ -96,6 +149,10 @@ export default function SignUpForm() {
                       id="fname"
                       name="fname"
                       placeholder="Enter your first name"
+                      value={formData.firstName}
+                      onChange={(event) =>
+                        setFormData({ ...formData, firstName: event.target.value })
+                      }
                     />
                   </div>
                   {/* <!-- Last Name --> */}
@@ -108,6 +165,10 @@ export default function SignUpForm() {
                       id="lname"
                       name="lname"
                       placeholder="Enter your last name"
+                      value={formData.lastName}
+                      onChange={(event) =>
+                        setFormData({ ...formData, lastName: event.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -121,6 +182,10 @@ export default function SignUpForm() {
                     id="email"
                     name="email"
                     placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={(event) =>
+                      setFormData({ ...formData, email: event.target.value })
+                    }
                   />
                 </div>
                 {/* <!-- Password --> */}
@@ -132,6 +197,10 @@ export default function SignUpForm() {
                     <Input
                       placeholder="Enter your password"
                       type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(event) =>
+                        setFormData({ ...formData, password: event.target.value })
+                      }
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -163,10 +232,19 @@ export default function SignUpForm() {
                     </span>
                   </p>
                 </div>
+                {message && (
+                  <p className="rounded-lg bg-error-50 px-4 py-3 text-sm text-error-600 dark:bg-error-500/10 dark:text-error-500">
+                    {message}
+                  </p>
+                )}
                 {/* <!-- Button --> */}
                 <div>
-                  <button className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600">
-                    Sign Up
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isLoading ? "Creating account..." : "Sign Up"}
                   </button>
                 </div>
               </div>

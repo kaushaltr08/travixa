@@ -5,11 +5,55 @@ import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
-import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { FormEvent, useState } from "react";
+
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function SignInForm() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    try {
+      setIsLoading(true);
+      setMessage("");
+
+      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          role: "admin",
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Unable to sign in.");
+      }
+
+      localStorage.setItem("travixaAdminToken", result.data.token);
+      localStorage.setItem("travixaAdminUser", JSON.stringify(result.data.user));
+      router.push("/");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to sign in.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
       <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
@@ -84,13 +128,20 @@ export default function SignInForm() {
                 </span>
               </div>
             </div>
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="space-y-6">
                 <div>
                   <Label>
                     Email <span className="text-error-500">*</span>{" "}
                   </Label>
-                  <Input placeholder="info@gmail.com" type="email" />
+                  <Input
+                    placeholder="admin@travixa.com"
+                    type="email"
+                    value={formData.email}
+                    onChange={(event) =>
+                      setFormData({ ...formData, email: event.target.value })
+                    }
+                  />
                 </div>
                 <div>
                   <Label>
@@ -100,6 +151,10 @@ export default function SignInForm() {
                     <Input
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={(event) =>
+                        setFormData({ ...formData, password: event.target.value })
+                      }
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -127,9 +182,14 @@ export default function SignInForm() {
                     Forgot password?
                   </Link>
                 </div>
+                {message && (
+                  <p className="rounded-lg bg-error-50 px-4 py-3 text-sm text-error-600 dark:bg-error-500/10 dark:text-error-500">
+                    {message}
+                  </p>
+                )}
                 <div>
-                  <Button className="w-full" size="sm">
-                    Sign in
+                  <Button className="w-full" size="sm" disabled={isLoading}>
+                    {isLoading ? "Signing in..." : "Sign in"}
                   </Button>
                 </div>
               </div>

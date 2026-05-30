@@ -4,6 +4,7 @@ import Header from "@/components/Layout/Header";
 import Footer from "@/components/Layout/Footer";
 import { ThemeProvider } from "next-themes";
 import ScrollToTop from "@/components/ScrollToTop";
+import ToasterContext from "./api/contex/ToasetContex";
 const font = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700"], });
 
 export default function RootLayout({
@@ -20,6 +21,7 @@ export default function RootLayout({
           defaultTheme="light"
         >
           <Header />
+          <ToasterContext />
           {children}
           <Footer />
           <ScrollToTop />

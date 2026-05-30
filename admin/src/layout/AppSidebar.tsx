@@ -42,6 +42,11 @@ const navItems: NavItem[] = [
     name: "User Profile",
     path: "/profile",
   },
+  {
+    icon: <TableIcon />,
+    name: "Bookings",
+    path: "/bookings",
+  },
 
   {
     name: "Forms",
@@ -308,7 +313,7 @@ const AppSidebar: React.FC = () => {
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
-        <Link href="/">
+        <Link href="/" className="inline-flex flex-col">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <Image
@@ -325,6 +330,9 @@ const AppSidebar: React.FC = () => {
                 width={150}
                 height={40}
               />
+              <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-brand-500 dark:text-brand-400">
+                Plan smarter. Travel better.
+              </span>
             </>
           ) : (
             <Image

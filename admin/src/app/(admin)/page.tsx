@@ -8,9 +8,8 @@ import RecentOrders from "@/components/ecommerce/RecentOrders";
 import DemographicCard from "@/components/ecommerce/DemographicCard";
 
 export const metadata: Metadata = {
-  title:
-    "Next.js E-commerce Dashboard | Travixa - Next.js Dashboard Template",
-  description: "This is Next.js Home for Travixa Dashboard Template",
+  title: "Travixa Admin",
+  description: "Travixa admin panel",
 };
 
 export default function Ecommerce() {
