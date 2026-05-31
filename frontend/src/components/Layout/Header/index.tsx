@@ -90,22 +90,19 @@ const Header: React.FC = () => {
               Login
             </Link>
             {isSignInOpen && (
-              <div className="fixed top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center z-50">
+              <div className="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center overflow-y-auto bg-black/50 px-4 py-6">
                 <div
                   ref={signInRef}
-                  className="relative mx-auto w-full max-w-md overflow-hidden rounded-lg px-8 pt-14 pb-8 text-center bg-white"
+                  className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-[1.5rem] bg-white shadow-2xl"
                 >
                   <button
                     onClick={() => setIsSignInOpen(false)}
-                    className="absolute top-0 right-0 mr-8 mt-8 dark:invert"
+                    className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-xl text-zinc-950 shadow-lg transition hover:bg-white"
                     aria-label="Close Sign In Modal"
                   >
-                    <Icon
-                      icon="tabler:currency-xrp"
-                      className="text-black hover:text-primary text-24 inline-block me-2"
-                    />
+                    <Icon icon="tabler:x" />
                   </button>
-                  <Signin />
+                  <Signin isModal />
                 </div>
               </div>
             )}
@@ -119,22 +116,19 @@ const Header: React.FC = () => {
               Signup
             </Link>
             {isSignUpOpen && (
-              <div className="fixed top-0 left-0 w-full h-full bg-black/50 flex items-center justify-center z-50">
+              <div className="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center overflow-y-auto bg-black/50 px-4 py-6">
                 <div
                   ref={signUpRef}
-                  className="relative mx-auto w-full max-w-md overflow-hidden rounded-lg bg-white backdrop-blur-md px-8 pt-14 pb-8 text-center"
+                  className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-[1.5rem] bg-white shadow-2xl"
                 >
                   <button
                     onClick={() => setIsSignUpOpen(false)}
-                    className="absolute top-0 right-0 mr-8 mt-8 dark:invert"
+                    className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-xl text-zinc-950 shadow-lg transition hover:bg-white"
                     aria-label="Close Sign Up Modal"
                   >
-                    <Icon
-                      icon="tabler:currency-xrp"
-                      className="text-black hover:text-primary text-24 inline-block me-2"
-                    />
+                    <Icon icon="tabler:x" />
                   </button>
-                  <SignUp />
+                  <SignUp isModal />
                 </div>
               </div>
             )}

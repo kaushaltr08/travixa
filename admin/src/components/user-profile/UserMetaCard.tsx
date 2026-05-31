@@ -32,7 +32,7 @@ export default function UserMetaCard() {
                 </p>
                 <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Arizona, United States
+                  Gandhinagar, Gujarat, India
                 </p>
               </div>
             </div>
@@ -201,13 +201,9 @@ export default function UserMetaCard() {
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Phone</Label>
-                    <Input type="text" defaultValue="+09 363 398 46" />
+                    <Input type="text" defaultValue="" />
                   </div>
 
-                  <div className="col-span-2">
-                    <Label>Bio</Label>
-                    <Input type="text" defaultValue="Team Manager" />
-                  </div>
                 </div>
               </div>
             </div>

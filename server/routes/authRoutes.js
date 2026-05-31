@@ -27,6 +27,14 @@ const sanitizeUser = (user) => ({
   role: user.role,
 });
 
+const normalizeRole = (role) => {
+  if (role === "admin") {
+    return "admin";
+  }
+
+  return "user";
+};
+
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -58,7 +66,7 @@ router.post("/register", async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: role === "admin" ? "admin" : "customer",
+      role: normalizeRole(role),
     });
 
     res.status(201).json({
@@ -99,10 +107,11 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    if (role && user.role !== role) {
+    const requestedRole = role ? normalizeRole(role) : "";
+    if (requestedRole && user.role !== requestedRole) {
       return res.status(403).json({
         success: false,
-        message: `This login is only for ${role} accounts.`,
+        message: `This login is only for ${requestedRole} accounts.`,
       });
     }
 
