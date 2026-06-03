@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import LoginRequiredModal from "@/components/Auth/LoginRequiredModal";
 import type { Destination } from "@/types/travixa";
+import { openRazorpayCheckout, type RazorpayOrderResponse } from "@/utils/razorpay";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -34,6 +35,8 @@ const defaultForm: BookingForm = {
   notes: "",
 };
 
+const tripTestPackageAmount = 1;
+
 export default function TripBookingSlider({ destinations }: TripBookingSliderProps) {
   const slides = useMemo(() => destinations.slice(0, 6), [destinations]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -44,6 +47,7 @@ export default function TripBookingSlider({ destinations }: TripBookingSliderPro
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const activeDestination = slides[activeIndex] || slides[0];
+  const payableAmount = selectedDestination ? tripTestPackageAmount : 0;
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -110,37 +114,75 @@ export default function TripBookingSlider({ destinations }: TripBookingSliderPro
         throw new Error("Return date cannot be before departure date.");
       }
 
-      const response = await fetch(`${apiBaseUrl}/api/bookings`, {
+      const booking = {
+        module: "holiday-packages",
+        customerName: form.customerName,
+        email: form.email,
+        phone: form.phone,
+        from: form.from,
+        to: selectedDestination.name,
+        departureDate: form.departureDate || undefined,
+        returnDate: form.returnDate || undefined,
+        travellers: Number(form.travellers),
+        classType: "Travixa curated trip",
+        notes: form.notes,
+      };
+
+      const response = await fetch(`${apiBaseUrl}/api/bookings/razorpay/order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("travixaToken") || ""}`,
         },
-        body: JSON.stringify({
-          module: "holiday-packages",
-          customerName: form.customerName,
-          email: form.email,
-          phone: form.phone,
-          from: form.from,
-          to: selectedDestination.name,
-          departureDate: form.departureDate || undefined,
-          returnDate: form.returnDate || undefined,
-          travellers: Number(form.travellers),
-          classType: "Travixa curated trip",
-          notes: form.notes,
-        }),
+        body: JSON.stringify({ amount: payableAmount, currency: "INR", booking }),
       });
 
-      const result = await response.json();
+      const result = (await response.json()) as { success: boolean; message?: string; data: RazorpayOrderResponse };
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Unable to create booking request.");
+        throw new Error(result.message || "Unable to start payment.");
       }
 
-      setMessage("Booking request sent. Travixa will contact you shortly.");
-      setForm(defaultForm);
+      await openRazorpayCheckout({
+        keyId: result.data.keyId,
+        order: result.data.order,
+        name: "Travixa",
+        description: `${selectedDestination.name} trip booking`,
+        prefill: {
+          name: form.customerName,
+          email: form.email,
+          contact: form.phone,
+        },
+        notes: {
+          bookingId: result.data.bookingId,
+          destination: selectedDestination.name,
+        },
+        theme: { color: "#0f766e" },
+        handler: async (paymentResponse) => {
+          const verifyResponse = await fetch(`${apiBaseUrl}/api/bookings/razorpay/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bookingId: result.data.bookingId,
+              ...paymentResponse,
+            }),
+          });
+          const verifyResult = await verifyResponse.json();
+
+          if (!verifyResponse.ok || !verifyResult.success) {
+            setMessage(verifyResult.message || "Payment verification failed.");
+            return;
+          }
+
+          setMessage("Payment successful. Your booking request is confirmed.");
+          setForm(defaultForm);
+        },
+        modal: {
+          ondismiss: () => setMessage("Payment was cancelled. Your booking is still pending."),
+        },
+      });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to create booking request.");
+      setMessage(error instanceof Error ? error.message : "Unable to start payment.");
     } finally {
       setIsSubmitting(false);
     }
@@ -294,12 +336,18 @@ export default function TripBookingSlider({ destinations }: TripBookingSliderPro
               </p>
             )}
 
+            {payableAmount > 0 && (
+              <p className="mt-5 rounded-2xl bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700 dark:bg-white/10 dark:text-zinc-200">
+                Payable now: Rs. {payableAmount.toLocaleString("en-IN")}
+              </p>
+            )}
+
             <button
               type="submit"
               disabled={isSubmitting}
               className="mt-6 h-12 w-full rounded-full bg-zinc-950 font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-white dark:text-zinc-950"
             >
-              {isSubmitting ? "Sending request..." : "Send booking request"}
+              {isSubmitting ? "Starting payment..." : `Pay Rs. ${payableAmount.toLocaleString("en-IN")}`}
             </button>
           </form>
         </div>

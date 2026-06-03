@@ -13,6 +13,7 @@ export default function UsersPage() {
         { key: "role", label: "Role" },
         { key: "isActive", label: "Active" },
       ]}
+      allowDelete
     />
   );
 }

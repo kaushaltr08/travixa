@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { headerData } from "../Header/Navigation/menuData";
@@ -8,19 +7,28 @@ import HeaderLink from "../Header/Navigation/HeaderLink";
 import MobileHeaderLink from "../Header/Navigation/MobileHeaderLink";
 import Signin from "@/components/Auth/SignIn";
 import SignUp from "@/components/Auth/SignUp";
+import PasswordResetModal from "@/components/Auth/PasswordResetModal";
 import { Icon } from "@iconify/react/dist/iconify.js";
+import toast from "react-hot-toast";
+import {
+  clearTravixaAuth,
+  getStoredTravixaUser,
+  travixaAuthChangedEvent,
+  type TravixaUser,
+} from "@/utils/travixaAuth";
+
+type AuthModal = "signin" | "signup" | "forgot" | null;
 
 const Header: React.FC = () => {
   const pathUrl = usePathname();
 
   const [navbarOpen, setNavbarOpen] = useState(false);
   const [sticky, setSticky] = useState(false);
-  const [isSignInOpen, setIsSignInOpen] = useState(false);
-  const [isSignUpOpen, setIsSignUpOpen] = useState(false);
+  const [authModal, setAuthModal] = useState<AuthModal>(null);
+  const [user, setUser] = useState<TravixaUser | null>(null);
   const isHeroNavbar = pathUrl === "/" && !sticky;
 
-  const signInRef = useRef<HTMLDivElement>(null);
-  const signUpRef = useRef<HTMLDivElement>(null);
+  const authModalRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = () => {
@@ -29,16 +37,10 @@ const Header: React.FC = () => {
 
   const handleClickOutside = (event: MouseEvent) => {
     if (
-      signInRef.current &&
-      !signInRef.current.contains(event.target as Node)
+      authModalRef.current &&
+      !authModalRef.current.contains(event.target as Node)
     ) {
-      setIsSignInOpen(false);
-    }
-    if (
-      signUpRef.current &&
-      !signUpRef.current.contains(event.target as Node)
-    ) {
-      setIsSignUpOpen(false);
+      setAuthModal(null);
     }
     if (
       mobileMenuRef.current &&
@@ -49,6 +51,14 @@ const Header: React.FC = () => {
     }
   };
 
+  const handleLogout = () => {
+    clearTravixaAuth();
+    setUser(null);
+    setNavbarOpen(false);
+    setAuthModal(null);
+    toast.success("Logged out successfully");
+  };
+
   useEffect(() => {
     window.addEventListener("scroll", handleScroll);
     document.addEventListener("mousedown", handleClickOutside);
@@ -56,15 +66,33 @@ const Header: React.FC = () => {
       window.removeEventListener("scroll", handleScroll);
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [navbarOpen, isSignInOpen, isSignUpOpen]);
+  }, [navbarOpen, authModal]);
 
   useEffect(() => {
-    if (isSignInOpen || isSignUpOpen || navbarOpen) {
+    const syncUser = () => {
+      setUser(getStoredTravixaUser());
+      setAuthModal(null);
+    };
+
+    syncUser();
+    window.addEventListener(travixaAuthChangedEvent, syncUser);
+    window.addEventListener("storage", syncUser);
+
+    return () => {
+      window.removeEventListener(travixaAuthChangedEvent, syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (authModal || navbarOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
-  }, [isSignInOpen, isSignUpOpen, navbarOpen]);
+  }, [authModal, navbarOpen]);
+
+  const closeAuthModal = () => setAuthModal(null);
 
   return (
     <header
@@ -80,55 +108,69 @@ const Header: React.FC = () => {
             ))}
           </nav>
           <div className="flex items-center gap-3">
-            <Link
-              href="#"
-              className="hidden lg:block rounded-full bg-primary px-7 py-3 text-base font-medium text-white hover:bg-primary/15 hover:text-primary"
-              onClick={() => {
-                setIsSignInOpen(true);
-              }}
-            >
-              Login
-            </Link>
-            {isSignInOpen && (
-              <div className="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center overflow-y-auto bg-black/50 px-4 py-6">
-                <div
-                  ref={signInRef}
-                  className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-[1.5rem] bg-white shadow-2xl"
+            {user ? (
+              <div className="hidden items-center gap-3 lg:flex">
+                <span className="max-w-[160px] truncate rounded-full bg-primary/10 px-5 py-3 text-base font-semibold text-primary">
+                  {user.name || user.email || "Travixa user"}
+                </span>
+                <button
+                  type="button"
+                  className="rounded-full bg-primary px-7 py-3 text-base font-medium text-white hover:bg-primary/15 hover:text-primary"
+                  onClick={handleLogout}
                 >
-                  <button
-                    onClick={() => setIsSignInOpen(false)}
-                    className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-xl text-zinc-950 shadow-lg transition hover:bg-white"
-                    aria-label="Close Sign In Modal"
-                  >
-                    <Icon icon="tabler:x" />
-                  </button>
-                  <Signin isModal />
-                </div>
+                  Logout
+                </button>
               </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="hidden rounded-full bg-primary px-7 py-3 text-base font-medium text-white hover:bg-primary/15 hover:text-primary lg:block"
+                  onClick={() => {
+                    setAuthModal("signin");
+                  }}
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  className="hidden rounded-full bg-primary/15 px-7 py-3 text-base font-medium text-primary hover:bg-primary hover:text-white lg:block"
+                  onClick={() => {
+                    setAuthModal("signup");
+                  }}
+                >
+                  Signup
+                </button>
+              </>
             )}
-            <Link
-              href="#"
-              className="hidden lg:block rounded-full bg-primary/15 px-7 py-3 text-base font-medium text-primary hover:bg-primary hover:text-white"
-              onClick={() => {
-                setIsSignUpOpen(true);
-              }}
-            >
-              Signup
-            </Link>
-            {isSignUpOpen && (
+            {authModal && (
               <div className="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center overflow-y-auto bg-black/50 px-4 py-6">
                 <div
-                  ref={signUpRef}
-                  className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-[1.5rem] bg-white shadow-2xl"
+                  ref={authModalRef}
+                  className={`relative mx-auto w-full overflow-hidden rounded-[1.5rem] bg-white shadow-2xl ${
+                    authModal === "forgot" ? "max-w-3xl" : "max-w-5xl"
+                  }`}
                 >
                   <button
-                    onClick={() => setIsSignUpOpen(false)}
+                    onClick={closeAuthModal}
                     className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-xl text-zinc-950 shadow-lg transition hover:bg-white"
-                    aria-label="Close Sign Up Modal"
+                    aria-label="Close auth modal"
                   >
                     <Icon icon="tabler:x" />
                   </button>
-                  <SignUp isModal />
+                  {authModal === "signin" && (
+                    <Signin
+                      isModal
+                      onCreateAccount={() => setAuthModal("signup")}
+                      onForgotPassword={() => setAuthModal("forgot")}
+                    />
+                  )}
+                  {authModal === "signup" && (
+                    <SignUp isModal onSignIn={() => setAuthModal("signin")} />
+                  )}
+                  {authModal === "forgot" && (
+                    <PasswordResetModal onBackToSignIn={() => setAuthModal("signin")} />
+                  )}
                 </div>
               </div>
             )}
@@ -168,26 +210,43 @@ const Header: React.FC = () => {
               <MobileHeaderLink key={index} item={item} />
             ))}
             <div className="mt-4 flex flex-col space-y-4 w-full">
-              <Link
-                href="#"
-                className="bg-transparent border border-primary text-primary px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white"
-                onClick={() => {
-                  setIsSignInOpen(true);
-                  setNavbarOpen(false);
-                }}
-              >
-                Login
-              </Link>
-              <Link
-                href="#"
-                className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                onClick={() => {
-                  setIsSignUpOpen(true);
-                  setNavbarOpen(false);
-                }}
-              >
-                Signup
-              </Link>
+              {user ? (
+                <>
+                  <span className="truncate rounded-lg border border-primary/25 px-4 py-2 font-semibold text-primary">
+                    {user.name || user.email || "Travixa user"}
+                  </span>
+                  <button
+                    type="button"
+                    className="rounded-lg bg-primary px-4 py-2 text-left text-white hover:bg-blue-700"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-primary bg-transparent px-4 py-2 text-left text-primary hover:bg-blue-600 hover:text-white"
+                    onClick={() => {
+                      setAuthModal("signin");
+                      setNavbarOpen(false);
+                    }}
+                  >
+                    Login
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg bg-primary px-4 py-2 text-left text-white hover:bg-blue-700"
+                    onClick={() => {
+                      setAuthModal("signup");
+                      setNavbarOpen(false);
+                    }}
+                  >
+                    Signup
+                  </button>
+                </>
+              )}
             </div>
           </nav>
         </div>

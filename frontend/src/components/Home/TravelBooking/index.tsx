@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { useState } from "react";
+import { openRazorpayCheckout, type RazorpayOrderResponse } from "@/utils/razorpay";
 
 type TravelModule = {
   label: string;
@@ -32,6 +33,7 @@ const travelModules: TravelModule[] = [
 ];
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const enquiryAmount = 499;
 
 const FlightIcon = ({ className = "" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 48 48" fill="none" aria-hidden="true">
@@ -104,26 +106,68 @@ const TravelBooking = () => {
       setSubmitStatus("loading");
       setSubmitMessage("");
 
-      const response = await fetch(`${apiBaseUrl}/api/bookings`, {
+      const booking = {
+        ...bookingDetails,
+        ...bookingForm,
+      };
+
+      const response = await fetch(`${apiBaseUrl}/api/bookings/razorpay/order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...bookingDetails,
-          ...bookingForm,
-        }),
+        body: JSON.stringify({ amount: enquiryAmount, currency: "INR", booking }),
       });
 
-      const result = await response.json();
+      const result = (await response.json()) as { success: boolean; message?: string; data: RazorpayOrderResponse };
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Unable to save booking request.");
+        throw new Error(result.message || "Unable to start payment.");
       }
 
-      setSubmitStatus("success");
-      setSubmitMessage("Booking request saved. Travixa will contact you soon.");
-      setBookingForm({ customerName: "", email: "", phone: "" });
+      await openRazorpayCheckout({
+        keyId: result.data.keyId,
+        order: result.data.order,
+        name: "Travixa",
+        description: `${openModule?.label || "Travel"} enquiry`,
+        prefill: {
+          name: bookingForm.customerName,
+          email: bookingForm.email,
+          contact: bookingForm.phone,
+        },
+        notes: {
+          bookingId: result.data.bookingId,
+          module: moduleSlug,
+        },
+        theme: { color: "#075BFF" },
+        handler: async (paymentResponse) => {
+          const verifyResponse = await fetch(`${apiBaseUrl}/api/bookings/razorpay/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bookingId: result.data.bookingId,
+              ...paymentResponse,
+            }),
+          });
+          const verifyResult = await verifyResponse.json();
+
+          if (!verifyResponse.ok || !verifyResult.success) {
+            setSubmitStatus("error");
+            setSubmitMessage(verifyResult.message || "Payment verification failed.");
+            return;
+          }
+
+          setSubmitStatus("success");
+          setSubmitMessage("Payment successful. Travixa will contact you soon.");
+          setBookingForm({ customerName: "", email: "", phone: "" });
+        },
+        modal: {
+          ondismiss: () => {
+            setSubmitStatus("error");
+            setSubmitMessage("Payment was cancelled. Your booking is still pending.");
+          },
+        },
+      });
     } catch (error) {
       setSubmitStatus("error");
       setSubmitMessage(
@@ -131,7 +175,7 @@ const TravelBooking = () => {
           ? `Cannot connect to backend at ${apiBaseUrl}. Please start the server.`
           : error instanceof Error
           ? error.message
-          : "Unable to save booking request."
+          : "Unable to start payment."
       );
     }
   };
@@ -340,6 +384,9 @@ const TravelBooking = () => {
                       {submitMessage}
                     </p>
                   )}
+                  <p className="sm:col-span-3 text-sm font-semibold text-midnight_text/70">
+                    Payable now: Rs. {enquiryAmount.toLocaleString("en-IN")}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -347,7 +394,7 @@ const TravelBooking = () => {
                   disabled={submitStatus === "loading"}
                   className="rounded-full bg-gradient-to-r from-[#52B6FF] to-[#075BFF] px-12 py-4 text-xl font-bold uppercase text-white shadow-[0_14px_30px_rgba(7,91,255,0.28)] transition hover:-translate-y-0.5"
                 >
-                  {submitStatus === "loading" ? "Saving..." : "Search"}
+                  {submitStatus === "loading" ? "Starting..." : `Pay Rs. ${enquiryAmount}`}
                 </button>
               </div>
             </div>

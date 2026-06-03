@@ -2,6 +2,9 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
+import toast from "react-hot-toast";
+import { notifyTravixaAuthChanged } from "@/utils/travixaAuth";
+import { Icon } from "@iconify/react";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -24,6 +27,7 @@ export default function LoginRequiredModal({
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   if (!isOpen) {
     return null;
@@ -50,6 +54,8 @@ export default function LoginRequiredModal({
 
       localStorage.setItem("travixaToken", result.data.token);
       localStorage.setItem("travixaUser", JSON.stringify(result.data.user));
+      notifyTravixaAuthChanged();
+      toast.success("Login successful");
       setEmail("");
       setPassword("");
       onSuccess();
@@ -99,13 +105,23 @@ export default function LoginRequiredModal({
           </label>
           <label className="block">
             <span className="mb-2 block text-sm font-semibold text-zinc-950 dark:text-white">Password</span>
-            <input
-              required
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="h-12 w-full rounded-2xl border border-zinc-200 bg-transparent px-4 text-base text-zinc-950 outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:border-white/10 dark:text-white"
-            />
+            <div className="relative">
+              <input
+                required
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="h-12 w-full rounded-2xl border border-zinc-200 bg-transparent px-4 pr-12 text-base text-zinc-950 outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:border-white/10 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                <Icon icon={showPassword ? "tabler:eye-off" : "tabler:eye"} className="text-xl" />
+              </button>
+            </div>
           </label>
         </div>
 

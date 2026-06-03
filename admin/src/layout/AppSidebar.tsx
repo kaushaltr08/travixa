@@ -32,14 +32,24 @@ const navItems: NavItem[] = [
     path: "/",
   },
   {
+    icon: <UserCircleIcon />,
+    name: "Users",
+    path: "/users",
+  },
+  {
+    icon: <BoxCubeIcon />,
+    name: "Bookings",
+    path: "/bookings",
+  },
+  {
     icon: <PageIcon />,
     name: "Destinations",
     path: "/destinations",
   },
   {
-    icon: <BoxCubeIcon />,
-    name: "Experiences",
-    path: "/experiences",
+    icon: <TableIcon />,
+    name: "Trip Requests",
+    path: "/trip-requests",
   },
   {
     icon: <PieChartIcon />,
@@ -47,14 +57,9 @@ const navItems: NavItem[] = [
     path: "/travel-styles",
   },
   {
-    icon: <UserCircleIcon />,
-    name: "Users",
-    path: "/users",
-  },
-  {
-    icon: <TableIcon />,
-    name: "Trip Requests",
-    path: "/trip-requests",
+    icon: <BoxCubeIcon />,
+    name: "Experiences",
+    path: "/experiences",
   },
   {
     icon: <ListIcon />,
@@ -64,11 +69,6 @@ const navItems: NavItem[] = [
 ];
 
 const othersItems: NavItem[] = [
-  {
-    icon: <BoxCubeIcon />,
-    name: "Bookings",
-    path: "/bookings",
-  },
   {
     icon: <PlugInIcon />,
     name: "Authentication",

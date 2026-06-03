@@ -67,6 +67,7 @@ export default function BookingsTable() {
   const [error, setError] = useState("");
   const [isCreatingDemo, setIsCreatingDemo] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadBookings = async () => {
     try {
@@ -177,6 +178,33 @@ export default function BookingsTable() {
     }
   };
 
+  const deleteBooking = async (bookingId: string) => {
+    const confirmed = window.confirm("Delete this booking request?");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingId(bookingId);
+      setError("");
+
+      const response = await fetch(`${apiBaseUrl}/api/bookings/${bookingId}`, {
+        method: "DELETE",
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Unable to delete booking.");
+      }
+
+      setBookings((current) => current.filter((booking) => booking._id !== bookingId));
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete booking.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -231,7 +259,7 @@ export default function BookingsTable() {
         )}
 
         <div className="max-w-full overflow-x-auto">
-          <div className="min-w-[1120px]">
+          <div className="min-w-[1240px]">
             <Table>
               <TableHeader className="border-b border-gray-100 dark:border-gray-800">
                 <TableRow>
@@ -255,6 +283,9 @@ export default function BookingsTable() {
                   </TableCell>
                   <TableCell isHeader className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 dark:text-gray-400">
                     Created
+                  </TableCell>
+                  <TableCell isHeader className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 dark:text-gray-400">
+                    Action
                   </TableCell>
                 </TableRow>
               </TableHeader>
@@ -324,6 +355,16 @@ export default function BookingsTable() {
                       </TableCell>
                       <TableCell className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
                         {formatDate(booking.createdAt)}
+                      </TableCell>
+                      <TableCell className="px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={() => deleteBooking(booking._id)}
+                          disabled={deletingId === booking._id}
+                          className="rounded-lg bg-error-50 px-3 py-2 text-theme-xs font-semibold text-error-600 transition hover:bg-error-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-error-500/10 dark:text-error-400"
+                        >
+                          {deletingId === booking._id ? "Deleting..." : "Delete"}
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))

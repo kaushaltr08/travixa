@@ -6,17 +6,21 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import Loader from "@/components/Common/Loader";
+import { notifyTravixaAuthChanged } from "@/utils/travixaAuth";
+import { Icon } from "@iconify/react";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 type SignUpProps = {
   isModal?: boolean;
+  onSignIn?: () => void;
 };
 
-const SignUp = ({ isModal = false }: SignUpProps) => {
+const SignUp = ({ isModal = false, onSignIn }: SignUpProps) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,6 +41,7 @@ const SignUp = ({ isModal = false }: SignUpProps) => {
 
       localStorage.setItem("travixaToken", result.data.token);
       localStorage.setItem("travixaUser", JSON.stringify(result.data.user));
+      notifyTravixaAuthChanged();
       toast.success("Successfully registered");
       router.push("/");
     } catch (error) {
@@ -115,15 +120,25 @@ const SignUp = ({ isModal = false }: SignUpProps) => {
 
             <label className="block">
               <span className="mb-2 block text-sm font-semibold">Password</span>
-              <input
-                type="password"
-                placeholder="At least 6 characters"
-                value={formData.password}
-                onChange={(event) => setFormData({ ...formData, password: event.target.value })}
-                required
-                minLength={6}
-                className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-base text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="At least 6 characters"
+                  value={formData.password}
+                  onChange={(event) => setFormData({ ...formData, password: event.target.value })}
+                  required
+                  minLength={6}
+                  className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 pr-12 text-base text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <Icon icon={showPassword ? "tabler:eye-off" : "tabler:eye"} className="text-xl" />
+                </button>
+              </div>
             </label>
 
             <button
@@ -137,9 +152,19 @@ const SignUp = ({ isModal = false }: SignUpProps) => {
 
           <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-300">
             Already have an account?
-            <Link href="/signin" className="pl-2 font-semibold text-teal-700 hover:underline dark:text-teal-300">
-              Sign In
-            </Link>
+            {isModal && onSignIn ? (
+              <button
+                type="button"
+                onClick={onSignIn}
+                className="pl-2 font-semibold text-teal-700 hover:underline dark:text-teal-300"
+              >
+                Sign In
+              </button>
+            ) : (
+              <Link href="/signin" className="pl-2 font-semibold text-teal-700 hover:underline dark:text-teal-300">
+                Sign In
+              </Link>
+            )}
           </p>
         </div>
       </div>

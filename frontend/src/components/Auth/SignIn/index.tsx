@@ -6,17 +6,22 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import Loader from "@/components/Common/Loader";
+import { notifyTravixaAuthChanged } from "@/utils/travixaAuth";
+import { Icon } from "@iconify/react";
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 type SigninProps = {
   isModal?: boolean;
+  onCreateAccount?: () => void;
+  onForgotPassword?: () => void;
 };
 
-const Signin = ({ isModal = false }: SigninProps) => {
+const Signin = ({ isModal = false, onCreateAccount, onForgotPassword }: SigninProps) => {
   const router = useRouter();
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const loginUser = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,6 +42,7 @@ const Signin = ({ isModal = false }: SigninProps) => {
 
       localStorage.setItem("travixaToken", result.data.token);
       localStorage.setItem("travixaUser", JSON.stringify(result.data.user));
+      notifyTravixaAuthChanged();
       toast.success("Login successful");
       router.push("/");
     } catch (error) {
@@ -83,14 +89,24 @@ const Signin = ({ isModal = false }: SigninProps) => {
 
             <label className="block">
               <span className="mb-2 block text-sm font-semibold">Password</span>
-              <input
-                type="password"
-                placeholder="Enter your password"
-                value={loginData.password}
-                required
-                onChange={(event) => setLoginData({ ...loginData, password: event.target.value })}
-                className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-base text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={loginData.password}
+                  required
+                  onChange={(event) => setLoginData({ ...loginData, password: event.target.value })}
+                  className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 pr-12 text-base text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 dark:border-white/10 dark:bg-zinc-950 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <Icon icon={showPassword ? "tabler:eye-off" : "tabler:eye"} className="text-xl" />
+                </button>
+              </div>
             </label>
 
             <button
@@ -103,14 +119,34 @@ const Signin = ({ isModal = false }: SigninProps) => {
           </form>
 
           <div className="mt-6 flex flex-col gap-3 text-sm text-zinc-600 dark:text-zinc-300 sm:flex-row sm:items-center sm:justify-between">
-            <Link href="/forgot-password" className="font-semibold text-teal-700 hover:underline dark:text-teal-300">
-              Forgot Password?
-            </Link>
+            {isModal && onForgotPassword ? (
+              <button
+                type="button"
+                onClick={onForgotPassword}
+                className="text-left font-semibold text-teal-700 hover:underline dark:text-teal-300"
+              >
+                Forgot Password?
+              </button>
+            ) : (
+              <Link href="/forgot-password" className="font-semibold text-teal-700 hover:underline dark:text-teal-300">
+                Forgot Password?
+              </Link>
+            )}
             <p>
               New to Travixa?{" "}
-              <Link href="/signup" className="font-semibold text-teal-700 hover:underline dark:text-teal-300">
-                Create account
-              </Link>
+              {isModal && onCreateAccount ? (
+                <button
+                  type="button"
+                  onClick={onCreateAccount}
+                  className="font-semibold text-teal-700 hover:underline dark:text-teal-300"
+                >
+                  Create account
+                </button>
+              ) : (
+                <Link href="/signup" className="font-semibold text-teal-700 hover:underline dark:text-teal-300">
+                  Create account
+                </Link>
+              )}
             </p>
           </div>
         </div>
